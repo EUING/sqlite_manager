@@ -13,25 +13,26 @@
 namespace sqlite_manager {
 namespace utf8 {
     std::unique_ptr<SqliteWrapper> SqliteWrapper::Create(const std::string& database_path) {
-        auto deleter = [](sqlite3* sqlite3) {
-            if (sqlite3) {
-                sqlite3_close(sqlite3);
-            }
-        };
-
         sqlite3* sqlite = nullptr;
         int result = sqlite3_open(database_path.c_str(), &sqlite);
-        std::unique_ptr<sqlite3, std::function<void(sqlite3*)>> sqlite_ptr(sqlite, deleter);
-
         if (SQLITE_OK != result) {
+            if (sqlite) {
+                sqlite3_close(sqlite);
+            }
             return nullptr;
         }
 
         std::unique_ptr<SqliteWrapper> sqlite_wrapper(new SqliteWrapper);
-        sqlite_wrapper->sqlite_ = std::move(sqlite_ptr);
+        sqlite_wrapper->sqlite_ = sqlite;
 
         return sqlite_wrapper;
 
+    }
+
+    SqliteWrapper::~SqliteWrapper() {
+        if (sqlite_) {
+            sqlite3_close(sqlite_);
+        }
     }
 
     int SqliteWrapper::ExecuteUpdate(const std::string& query) {
@@ -42,14 +43,14 @@ namespace utf8 {
         };
 
         char* err = nullptr;
-        int result = sqlite3_exec(sqlite_.get(), query.c_str(), nullptr, nullptr, &err);
+        int result = sqlite3_exec(sqlite_, query.c_str(), nullptr, nullptr, &err);
         std::unique_ptr<char, decltype(deleter)> err_msg(err, deleter);
 
         if (SQLITE_OK != result) {
             return -1;
         }
 
-        return sqlite3_changes(sqlite_.get());
+        return sqlite3_changes(sqlite_);
     }
 
     std::optional<std::vector<DataSet>> SqliteWrapper::ExecuteQuery(const std::string& query) {
@@ -77,7 +78,7 @@ namespace utf8 {
 
         std::vector<DataSet> v;
         char* err = nullptr;
-        int result = sqlite3_exec(sqlite_.get(), query.c_str(), callback, &v, &err);
+        int result = sqlite3_exec(sqlite_, query.c_str(), callback, &v, &err);
         std::unique_ptr<char, decltype(deleter)> err_msg(err, deleter);
 
         if (SQLITE_OK != result) {
@@ -90,24 +91,25 @@ namespace utf8 {
 
 namespace utf16 {
     std::unique_ptr<SqliteWrapper> SqliteWrapper::Create(const std::wstring& database_path) {
-        auto deleter = [](sqlite3* sqlite3) {
-            if (sqlite3) {
-                sqlite3_close(sqlite3);
-            }
-        };
-
         sqlite3* sqlite = nullptr;
         int result = sqlite3_open16(database_path.c_str(), &sqlite);
-        std::unique_ptr<sqlite3, std::function<void(sqlite3*)>> sqlite_ptr(sqlite, deleter);
-
         if (SQLITE_OK != result) {
+            if (sqlite) {
+                sqlite3_close(sqlite);
+            }
             return nullptr;
-        }
+        }        
 
         std::unique_ptr<SqliteWrapper> sqlite_wrapper(new SqliteWrapper);
-        sqlite_wrapper->sqlite_ = std::move(sqlite_ptr);
+        sqlite_wrapper->sqlite_ = sqlite;
 
         return sqlite_wrapper;
+    }
+
+    SqliteWrapper::~SqliteWrapper() {
+        if (sqlite_) {
+            sqlite3_close(sqlite_);
+        }
     }
 
     int SqliteWrapper::ExecuteUpdate(const std::wstring& query) {
@@ -120,14 +122,14 @@ namespace utf16 {
         };
 
         char* err = nullptr;
-        int result = sqlite3_exec(sqlite_.get(), utf_8.c_str(), nullptr, nullptr, &err);
+        int result = sqlite3_exec(sqlite_, utf_8.c_str(), nullptr, nullptr, &err);
         std::unique_ptr<char, decltype(deleter)> err_msg(err, deleter);
 
         if (SQLITE_OK != result) {
             return -1;
         }
 
-        return sqlite3_changes(sqlite_.get());
+        return sqlite3_changes(sqlite_);
     }
 
     std::optional<std::vector<DataSet>> SqliteWrapper::ExecuteQuery(const std::wstring& query) {
@@ -157,7 +159,7 @@ namespace utf16 {
 
         std::vector<DataSet> v;
         char* err = nullptr;
-        int result = sqlite3_exec(sqlite_.get(), utf_8.c_str(), callback, &v, &err);
+        int result = sqlite3_exec(sqlite_, utf_8.c_str(), callback, &v, &err);
         std::unique_ptr<char, decltype(deleter)> err_msg(err, deleter);
 
         if (SQLITE_OK != result) {

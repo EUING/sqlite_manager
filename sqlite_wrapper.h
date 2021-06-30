@@ -12,9 +12,8 @@
 #include <string>
 #include <map>
 #include <memory>
-#include <functional>
 
-#include "sqlite3.h"
+struct sqlite3;
 
 namespace sqlite_manager {
 namespace utf8 {
@@ -30,7 +29,7 @@ namespace utf8 {
 		SqliteWrapper(SqliteWrapper&&) = delete;
 		SqliteWrapper& operator=(SqliteWrapper&&) = delete;
 
-		~SqliteWrapper() = default;
+		~SqliteWrapper();
 
 		int ExecuteUpdate(const std::string& query);
 		std::optional<std::vector<DataSet>> ExecuteQuery(const std::string& query);
@@ -38,7 +37,7 @@ namespace utf8 {
 	private:
 		SqliteWrapper() = default;
 
-		std::unique_ptr<sqlite3, std::function<void(sqlite3*)>> sqlite_;
+		sqlite3* sqlite_;
 	};
 }  // namespace utf8
 
@@ -55,7 +54,7 @@ namespace utf16 {
 		SqliteWrapper(SqliteWrapper&&) = delete;
 		SqliteWrapper& operator=(SqliteWrapper&&) = delete;
 
-		~SqliteWrapper() = default;
+		~SqliteWrapper();
 
 		int ExecuteUpdate(const std::wstring& query);
 		std::optional<std::vector<DataSet>> ExecuteQuery(const std::wstring& query);
@@ -63,7 +62,7 @@ namespace utf16 {
 	private:
 		SqliteWrapper() = default;
 
-		std::unique_ptr<sqlite3, std::function<void(sqlite3*)>> sqlite_;
+		sqlite3* sqlite_;
 	};
 }  // namespace utf16
 }  // namespace sqlite_manager
