@@ -35,7 +35,7 @@ namespace utf8 {
         }
     }
 
-    int SqliteWrapper::ExecuteUpdate(const std::string& query) {
+    SqlError SqliteWrapper::ExecuteUpdate(const std::string& query) {
         auto deleter = [](char* err_msg) {
             if (err_msg) {
                 sqlite3_free(err_msg);
@@ -45,12 +45,9 @@ namespace utf8 {
         char* err = nullptr;
         int result = sqlite3_exec(sqlite_, query.c_str(), nullptr, nullptr, &err);
         std::unique_ptr<char, decltype(deleter)> err_msg(err, deleter);
+        last_error_ = err ? err : std::string();
 
-        if (SQLITE_OK != result) {
-            return -1;
-        }
-
-        return sqlite3_changes(sqlite_);
+        return static_cast<SqlError>(result);
     }
 
     std::optional<std::vector<DataSet>> SqliteWrapper::ExecuteQuery(const std::string& query) {
@@ -87,6 +84,14 @@ namespace utf8 {
 
         return v;
     }
+
+    std::optional<int> SqliteWrapper::GetLastChangeRowCount() const {
+        if (!sqlite_) {
+            return std::nullopt;
+        }
+        
+        return sqlite3_changes(sqlite_);
+    }
 }  // namespace utf8
 
 namespace utf16 {
@@ -112,7 +117,7 @@ namespace utf16 {
         }
     }
 
-    int SqliteWrapper::ExecuteUpdate(const std::wstring& query) {
+    SqlError SqliteWrapper::ExecuteUpdate(const std::wstring& query) {
         std::string utf_8 = query.empty() ? std::string() : CW2A(query.c_str(), CP_UTF8).m_psz;
 
         auto deleter = [](char* err_msg) {
@@ -124,12 +129,9 @@ namespace utf16 {
         char* err = nullptr;
         int result = sqlite3_exec(sqlite_, utf_8.c_str(), nullptr, nullptr, &err);
         std::unique_ptr<char, decltype(deleter)> err_msg(err, deleter);
-
-        if (SQLITE_OK != result) {
-            return -1;
-        }
-
-        return sqlite3_changes(sqlite_);
+        last_error_ = err ? CA2W(err, CP_UTF8).m_psz : std::wstring();
+        
+        return static_cast<SqlError>(result);
     }
 
     std::optional<std::vector<DataSet>> SqliteWrapper::ExecuteQuery(const std::wstring& query) {
@@ -167,6 +169,14 @@ namespace utf16 {
         }
 
         return v;
+    }
+
+    std::optional<int> SqliteWrapper::GetLastChangeRowCount() const {
+        if (!sqlite_) {
+            return std::nullopt;
+        }
+
+        return sqlite3_changes(sqlite_);
     }
 }  // namespace utf16
 }  // namespace sqlite_manager
